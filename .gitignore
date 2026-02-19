@@ -21,3 +21,11 @@ artifacts/
 # User-specific
 *.userosscache
 *.sln.docstates
+
+# Android
+sasmex-android/.gradle/
+sasmex-android/app/build/
+sasmex-android/build/
+*.apk
+*.hprof
+tools/

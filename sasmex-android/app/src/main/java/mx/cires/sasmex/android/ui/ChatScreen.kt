@@ -7,13 +7,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import mx.cires.sasmex.android.data.ChatMessage
@@ -22,39 +27,97 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ChatScreen(chatRepository: ChatRepository, modifier: Modifier = Modifier) {
-    val messages by chatRepository.messages.collectAsState()
+fun ChatScreen(
+    chatRepository: ChatRepository,
+    modifier: Modifier = Modifier
+) {
+    val messages by chatRepository.messages.collectAsState(initial = emptyList())
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
+    fun send() {
+        val t = input.trim()
+        if (t.isEmpty()) return
+        input = ""
+        focusManager.clearFocus()
+        scope.launch {
+            chatRepository.sendUserMessage(t)
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
-        // Cabecera chat
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2B3D)),
-            shape = RoundedCornerShape(12.dp)
+        // Cabecera con botón borrar
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFF1B2838),
+            shadowElevation = 4.dp
         ) {
-            Column(Modifier.padding(16.dp)) {
-                Text("Chat SASMEX", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Asistente y últimas alertas", color = Color(0xFFB0BEC5), style = MaterialTheme.typography.bodySmall)
+            Row(
+                Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        "Chat SASMEX",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Asistente y últimas alertas",
+                        color = Color(0xFF94A3B8),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                IconButton(
+                    onClick = { chatRepository.clearHistory() },
+                    modifier = Modifier
+                ) {
+                    Icon(
+                        Icons.Default.DeleteSweep,
+                        contentDescription = "Borrar historial",
+                        tint = Color.White
+                    )
+                }
             }
         }
+
+        // Hint comandos
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color(0xFFE0F2FE),
+            shape = RoundedCornerShape(0.dp)
+        ) {
+            Text(
+                "Escribe: alerta, ayuda, 911, qué hacer, cires, borrar",
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF0369A1)
+            )
+        }
+
         // Lista de mensajes
         LazyColumn(
             state = listState,
-            modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(messages) { msg ->
+            items(messages, key = { it.id }) { msg ->
                 ChatBubble(msg)
             }
         }
-        // Input
+
+        // Campo de texto y enviar
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 8.dp,
@@ -62,7 +125,7 @@ fun ChatScreen(chatRepository: ChatRepository, modifier: Modifier = Modifier) {
         ) {
             Row(
                 Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
                 OutlinedTextField(
                     value = input,
@@ -71,18 +134,19 @@ fun ChatScreen(chatRepository: ChatRepository, modifier: Modifier = Modifier) {
                     placeholder = { Text("Escribe un mensaje…") },
                     singleLine = false,
                     maxLines = 3,
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(24.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { send() })
                 )
                 Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = {
-                        if (input.isNotBlank()) {
-                            scope.launch { chatRepository.sendUserMessage(input) }
-                            input = ""
-                        }
-                    }
+                Button(
+                    onClick = { send() },
+                    modifier = Modifier.height(48.dp),
+                    enabled = input.isNotBlank(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9))
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = "Enviar", tint = Color(0xFF2563EB))
+                    Icon(Icons.Default.Send, contentDescription = "Enviar", modifier = Modifier.size(22.dp))
                 }
             }
         }
@@ -104,9 +168,9 @@ private fun ChatBubble(msg: ChatMessage) {
                 bottomEnd = if (isUser) 4.dp else 16.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (isUser) Color(0xFF2563EB) else Color(0xFFE2E8F0)
+                containerColor = if (isUser) Color(0xFF0EA5E9) else Color(0xFFE2E8F0)
             ),
-            modifier = Modifier.widthIn(max = 280.dp)
+            modifier = Modifier.widthIn(max = 300.dp)
         ) {
             Column(Modifier.padding(12.dp)) {
                 Text(

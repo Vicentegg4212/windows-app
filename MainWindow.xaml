@@ -4,7 +4,8 @@
         Title="SASMEX — Centro de Alertas Sísmicas" 
         Height="680" Width="960" MinHeight="520" MinWidth="720"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgAppBrush}">
+        Background="{StaticResource BgAppBrush}"
+        KeyDown="Window_KeyDown">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -48,7 +49,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <Border Width="8" Height="32" CornerRadius="4" Background="{StaticResource WarningBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Border x:Name="alertCardBar" Width="8" Height="32" CornerRadius="4" Background="{StaticResource WarningBrush}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock x:Name="txtAlertaTitulo" Text="Sin alerta reciente" 
                                FontFamily="{StaticResource AppFont}" FontSize="16" FontWeight="SemiBold" 
                                Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center"/>
@@ -90,10 +91,12 @@
                            Foreground="{StaticResource TextMutedBrush}"/>
                 <Button Grid.Column="1" x:Name="btnActualizar" Content="Actualizar" 
                         Style="{StaticResource ButtonPrimary}" Width="120" Margin="0,0,12,0"
+                        ToolTip="Obtener las últimas alertas SASMEX ahora (F5)"
                         Click="btnActualizar_Click"/>
                 <CheckBox Grid.Column="2" x:Name="chkMonitoreo" Content="Monitoreo automático" 
                           VerticalAlignment="Center" FontFamily="{StaticResource AppFont}" FontSize="13"
                           Foreground="{StaticResource TextPrimaryBrush}"
+                          ToolTip="Actualizar alertas automáticamente cada pocos minutos"
                           Checked="chkMonitoreo_Checked" Unchecked="chkMonitoreo_Unchecked"/>
             </Grid>
         </Border>

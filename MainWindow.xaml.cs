@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using DetectorSismos.Models;
 using DetectorSismos.Services;
@@ -44,6 +46,15 @@ namespace DetectorSismos
             _ = CargarAlertas();
         }
 
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F5 && btnActualizar.IsEnabled)
+            {
+                e.Handled = true;
+                _ = CargarAlertas();
+            }
+        }
+
         private async void btnActualizar_Click(object sender, RoutedEventArgs e)
         {
             await CargarAlertas();
@@ -55,6 +66,7 @@ namespace DetectorSismos
             {
                 txtEstado.Text = "Cargando alertas SASMEX...";
                 btnActualizar.IsEnabled = false;
+                btnActualizar.Content = "Cargando…";
 
                 var alertas = await _sasmexService.ObtenerUltimasAlertasAsync();
 
@@ -69,6 +81,12 @@ namespace DetectorSismos
                     txtAlertaSeveridad.Text = ultima.Severidad;
                     txtAlertaDescripcion.Text = string.IsNullOrEmpty(ultima.Descripcion) ? "—" : ultima.Descripcion;
 
+                    // Color de la barra según severidad
+                    var sev = (ultima.Severidad ?? "").ToLowerInvariant();
+                    alertCardBar.Background = sev.Contains("mayor") ? (Brush)Application.Current.Resources["DangerBrush"]
+                        : sev.Contains("menor") ? (Brush)Application.Current.Resources["SuccessBrush"]
+                        : (Brush)Application.Current.Resources["WarningBrush"];
+
                     if (chkMonitoreo.IsChecked == true)
                         VerificarAlertasNuevas(alertas);
                 }
@@ -80,6 +98,7 @@ namespace DetectorSismos
                     txtAlertaFecha.Text = "—";
                     txtAlertaSeveridad.Text = "—";
                     txtAlertaDescripcion.Text = "No hay entradas en el feed o no se pudo conectar a rss.sasmex.net.";
+                    alertCardBar.Background = (Brush)Application.Current.Resources["WarningBrush"];
                 }
 
                 _ultimaActualizacion = DateTime.Now;
@@ -95,6 +114,7 @@ namespace DetectorSismos
             finally
             {
                 btnActualizar.IsEnabled = true;
+                btnActualizar.Content = "Actualizar";
             }
         }
 
