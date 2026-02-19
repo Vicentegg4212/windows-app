@@ -5,6 +5,15 @@ plugins {
 android {
     namespace = "mx.cires.sasmex.android"
     compileSdk = 34
+    signingConfigs {
+        create("release") {
+            val home = System.getProperty("user.home")
+            storeFile = File(home, ".android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     defaultConfig {
         applicationId = "mx.cires.sasmex.android"
         minSdk = 24
@@ -14,6 +23,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

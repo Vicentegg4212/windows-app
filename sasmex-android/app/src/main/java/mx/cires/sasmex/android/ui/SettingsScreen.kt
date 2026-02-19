@@ -5,9 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -28,7 +29,7 @@ fun SettingsScreen(
                 title = { Text("Ajustes") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
@@ -64,6 +65,38 @@ fun SettingsScreen(
                     Text(label, style = MaterialTheme.typography.bodyLarge)
                     Spacer(Modifier.weight(1f))
                     RadioButton(selected = selected, onClick = { onThemeSelected(value) })
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "Área epicentral",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "El área epicentral se construye con base en los teléfonos que tienen la app instalada y reciben la notificación. Cuantos más dispositivos la usen, mejor se puede definir la zona epicentral.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }

@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Obtiene alertas desde la API SASMEX/CIRES (misma que el bot y la app Windows).
+ * La info viene en formato CAP (Common Alerting Protocol); los .cap definen dónde se registra el sismo.
  * https://rss.sasmex.net/api/v1/alerts/latest/cap/
  */
 class SasmexRepository {
@@ -110,18 +111,14 @@ class SasmexRepository {
             else -> "Moderada"
         }
 
-        val fecha = try {
-            if (updated.isNotEmpty()) {
-                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(updated)
-                    ?: java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US).parse(updated)
-                    ?: java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", java.util.Locale.US).parse(updated)
-                    ?: Date()
-            } else Date()
-        } catch (_: Exception) { Date() }
-
-        val evento = cleanEventTitle(rawTitle, rawContent)
-        val descripcionLimpia = cleanDescription(rawContent)
+        val cap = parseCapFromContent(rawContent)
+        val fecha = parseEventDateFromCap(cap, rawTitle, rawContent, updated)
+        val evento = if (cap.headline.isNotBlank()) cap.headline.trim().take(120) else cleanEventTitle(rawTitle, rawContent)
+        val descripcionLimpia = if (cap.description.isNotBlank()) cap.description.trim().take(500) else cleanDescription(rawContent)
         val (magnitud, ubicacion, profundidad, lat, lon) = extractDetailFromContent(rawContent)
+        val ubicacionFinal = if (ubicacion.isBlank() && cap.areaDescs.isNotEmpty()) {
+            cap.areaDescs.firstOrNull { !isSoloCDMX(it) }?.trim() ?: ""
+        } else ubicacion
 
         return AlertaSasmex(
             id = e["id"].orEmpty().ifEmpty { "alerta-${e.hashCode()}" },
@@ -130,11 +127,49 @@ class SasmexRepository {
             severidad = "Severidad: $severidad",
             descripcion = descripcionLimpia,
             magnitud = magnitud,
-            ubicacion = ubicacion,
+            ubicacion = ubicacionFinal,
             profundidad = profundidad,
             lat = lat,
             lon = lon
         )
+    }
+
+    /** Datos extraídos del CAP (Common Alerting Protocol); los .cap en rss.sasmex.net son la fuente oficial. */
+    private data class CapData(
+        val effective: String,
+        val sent: String,
+        val areaDescs: List<String>,
+        val headline: String,
+        val description: String
+    )
+
+    /** Parsea elementos CAP del contenido XML (alert/sent, info/effective, info/area/areaDesc, info/headline, info/description). */
+    private fun parseCapFromContent(raw: String): CapData {
+        val effective = Regex("<(?:[\\w.]+:)?effective[^>]*>([^<]+)</(?:[\\w.]+:)?effective>", RegexOption.IGNORE_CASE).find(raw)?.groupValues?.get(1)?.trim() ?: ""
+        val sent = Regex("<(?:[\\w.]+:)?sent[^>]*>([^<]+)</(?:[\\w.]+:)?sent>", RegexOption.IGNORE_CASE).find(raw)?.groupValues?.get(1)?.trim() ?: ""
+        val areaDescs = Regex("<(?:[\\w.]+:)?areaDesc[^>]*>([^<]+)</(?:[\\w.]+:)?areaDesc>", RegexOption.IGNORE_CASE).findAll(raw).map { it.groupValues[1].trim() }.filter { it.isNotBlank() }.toList()
+        val headline = Regex("<(?:[\\w.]+:)?headline[^>]*>([^<]*)</(?:[\\w.]+:)?headline>", RegexOption.IGNORE_CASE).find(raw)?.groupValues?.get(1)?.trim() ?: ""
+        val description = Regex("<(?:[\\w.]+:)?description[^>]*>([^<]*)</(?:[\\w.]+:)?description>", RegexOption.IGNORE_CASE).find(raw)?.groupValues?.get(1)?.trim() ?: ""
+        return CapData(effective = effective, sent = sent, areaDescs = areaDescs, headline = headline, description = description)
+    }
+
+    private fun parseEventDateFromCap(cap: CapData, rawTitle: String, rawContent: String, updated: String): Date {
+        val isoFormats = listOf(
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", java.util.Locale.US),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX", java.util.Locale.US)
+        )
+        for (s in listOf(cap.effective, cap.sent)) {
+            if (s.isBlank()) continue
+            val clean = s.replace(Regex("[+-]\\d{2}:\\d{2}$"), "").trim()
+            for (fmt in isoFormats) {
+                try {
+                    fmt.parse(clean)?.let { return it }
+                } catch (_: Exception) { }
+            }
+        }
+        return parseEventDate(rawTitle, rawContent, updated)
     }
 
     private fun extractDetailFromContent(raw: String): Extraction {
@@ -158,6 +193,7 @@ class SasmexRepository {
             }
         }
 
+        // Epicentro real: "123 KM AL SUR DE LAZARO CARDENAS, MICH"
         Regex("(\\d+)\\s*KM\\s*AL\\s*(?:SUR|NORTE|ESTE|OESTE)\\s+DE\\s+[^,]+,\\s*[A-ZÁÉÍÓÚÑ\\s]+", RegexOption.IGNORE_CASE).find(raw)?.let {
             ubicacion = it.value.trim().uppercase()
         }
@@ -166,9 +202,23 @@ class SasmexRepository {
                 ubicacion = it.groupValues[1].trim()
             }
         }
-        if (ubicacion.isEmpty() && raw.contains("en ", ignoreCase = true)) {
-            extractHumanTitleFromContent(raw).takeIf { it.length in 15..70 }?.let { ubicacion = it }
+        // Región del evento: "Sismo en Costa Mich" -> Costa Mich (no usar CDMX como epicentro)
+        if (ubicacion.isEmpty()) {
+            Regex("(?:Sismo|Alerta|Evento)\\s+(?:Moderado|Menor|Mayor|Fuerte)?\\s*en\\s+([A-Za-zÀ-ú\\s]{4,50})", RegexOption.IGNORE_CASE).find(raw)?.let { m ->
+                val region = m.groupValues[1].trim()
+                if (!isSoloCDMX(region)) ubicacion = region
+            }
         }
+        if (ubicacion.isEmpty() && raw.contains("en ", ignoreCase = true)) {
+            val fromTitle = extractHumanTitleFromContent(raw)
+            val loc = when {
+                fromTitle.length in 15..70 -> fromTitle
+                else -> null
+            }
+            if (loc != null && !isSoloCDMX(loc)) ubicacion = loc
+        }
+        // Nunca mostrar CDMX como ubicación del sismo (es donde se emite la alerta, no el epicentro)
+        if (isSoloCDMX(ubicacion)) ubicacion = ""
 
         Regex("(?:profundidad|depth)\\s*[:\\.]?\\s*(\\d+)\\s*km", RegexOption.IGNORE_CASE).find(raw)?.let {
             profundidad = "${it.groupValues[1]} km"
@@ -197,6 +247,46 @@ class SasmexRepository {
         }
 
         return Extraction(magnitud, ubicacion, profundidad, lat, lon)
+    }
+
+    /** Parsea la fecha/hora del evento desde título o contenido (como marca el RSS), no la de actualización del feed. */
+    private fun parseEventDate(rawTitle: String, rawContent: String, updated: String): Date {
+        val text = "$rawTitle $rawContent"
+        val formats = listOf(
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US),
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US),
+            java.text.SimpleDateFormat("dd MMM yyyy HH:mm:ss", java.util.Locale.US),
+            java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", java.util.Locale.US)
+        )
+        // 2026-02-19 01:02:41 o 19 Feb 2026 01:02:41
+        val dateInText = Regex("(\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2})").find(text)?.groupValues?.get(1)
+            ?: Regex("(\\d{1,2}\\s+\\w{3}\\s+\\d{4}\\s+\\d{2}:\\d{2}:\\d{2})", RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)
+        if (!dateInText.isNullOrBlank()) {
+            for (fmt in formats) {
+                try {
+                    fmt.parse(dateInText.trim())?.let { return it }
+                } catch (_: Exception) { }
+            }
+        }
+        return try {
+            if (updated.isNotEmpty()) {
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(updated)
+                    ?: java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", java.util.Locale.US).parse(updated)
+                    ?: java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", java.util.Locale.US).parse(updated)
+                    ?: Date()
+            } else Date()
+        } catch (_: Exception) { Date() }
+    }
+
+    /** CDMX es donde se emite/recibe la alerta, no el epicentro; no usarla como ubicación del sismo. */
+    private fun isSoloCDMX(text: String): Boolean {
+        if (text.isBlank()) return false
+        val t = text.trim().lowercase()
+        return t == "cdmx" || t == "ciudad de méxico" || t == "ciudad de mexico" ||
+            t.startsWith("cdmx ") || t.endsWith(" cdmx") ||
+            t.contains("ciudad de méxico") || t.contains("ciudad de mexico") ||
+            t.contains("distrito federal")
     }
 
     private data class Extraction(
