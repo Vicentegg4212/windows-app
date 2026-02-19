@@ -6,6 +6,8 @@
 *.dll
 *.pdb
 *.exe
+# Permitir .exe de release para GitHub
+!release-assets/*.exe
 *.cache
 *.user
 *.suo
