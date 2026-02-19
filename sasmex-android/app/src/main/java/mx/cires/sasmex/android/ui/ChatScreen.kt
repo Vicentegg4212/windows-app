@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.KeyboardActions
@@ -55,7 +54,7 @@ fun ChatScreen(
         // Cabecera con botón borrar
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFF1B2838),
+            color = MaterialTheme.colorScheme.primary,
             shadowElevation = 4.dp
         ) {
             Row(
@@ -66,13 +65,13 @@ fun ChatScreen(
                 Column {
                     Text(
                         "Chat SASMEX",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         "Asistente y últimas alertas",
-                        color = Color(0xFF94A3B8),
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -83,7 +82,7 @@ fun ChatScreen(
                     Icon(
                         Icons.Default.DeleteSweep,
                         contentDescription = "Borrar historial",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
@@ -92,14 +91,14 @@ fun ChatScreen(
         // Hint comandos
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFFE0F2FE),
+            color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(0.dp)
         ) {
             Text(
                 "Escribe: alerta, ayuda, 911, qué hacer, cires, borrar",
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF0369A1)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -144,7 +143,7 @@ fun ChatScreen(
                     modifier = Modifier.height(48.dp),
                     enabled = input.isNotBlank(),
                     shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Send, contentDescription = "Enviar", modifier = Modifier.size(22.dp))
                 }
@@ -168,20 +167,20 @@ private fun ChatBubble(msg: ChatMessage) {
                 bottomEnd = if (isUser) 4.dp else 16.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = if (isUser) Color(0xFF0EA5E9) else Color(0xFFE2E8F0)
+                containerColor = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
             ),
             modifier = Modifier.widthIn(max = 300.dp)
         ) {
             Column(Modifier.padding(12.dp)) {
                 Text(
                     msg.text,
-                    color = if (isUser) Color.White else Color(0xFF0F172A),
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
                     SimpleDateFormat("HH:mm", Locale.getDefault()).format(msg.date),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isUser) Color.White.copy(alpha = 0.8f) else Color(0xFF64748B),
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }

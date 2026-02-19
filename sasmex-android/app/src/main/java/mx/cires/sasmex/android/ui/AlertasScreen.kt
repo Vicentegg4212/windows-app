@@ -37,14 +37,27 @@ import java.util.*
 fun AlertasScreen(
     sasmexRepository: SasmexRepository,
     onAlertasLoaded: (List<AlertaSasmex>) -> Unit,
-    onNotifyLatest: ((AlertaSasmex) -> Unit)? = null,
+    onCheckNewAlert: ((List<AlertaSasmex>) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var alertas by remember { mutableStateOf<List<AlertaSasmex>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var lastUpdate by remember { mutableStateOf<Long?>(null) }
+    var filterSeverity by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val filteredAlertas = remember(alertas, filterSeverity) {
+        if (filterSeverity == null) alertas
+        else alertas.filter { a ->
+            when (filterSeverity) {
+                "Mayor" -> a.esMayor
+                "Menor" -> a.esMenor
+                "Moderada" -> !a.esMayor && !a.esMenor
+                else -> true
+            }
+        }
+    }
 
     fun load() {
         loading = true
@@ -53,8 +66,9 @@ fun AlertasScreen(
             sasmexRepository.obtenerAlertas()
                 .onSuccess {
                     alertas = it
+                    lastUpdate = System.currentTimeMillis()
                     onAlertasLoaded(it)
-                    if (it.isNotEmpty()) onNotifyLatest?.invoke(it.first())
+                    onCheckNewAlert?.invoke(it)
                 }
                 .onFailure { error = it.message ?: "Error al cargar" }
             loading = false
@@ -76,7 +90,7 @@ fun AlertasScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         // Cabecera mínima
         Row(
@@ -91,25 +105,25 @@ fun AlertasScreen(
                     "SASMEX",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     "Alertas sísmicas",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
                 "cires.org.mx",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF0EA5E9),
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
                     context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.cires.org.mx")))
                 }
             )
         }
 
-        // Botón actualizar: estilo outline, discreto
+        // Botón actualizar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,16 +133,12 @@ fun AlertasScreen(
             FilledTonalButton(
                 onClick = { if (!loading) load() },
                 enabled = !loading,
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = Color(0xFFE0F2FE),
-                    contentColor = Color(0xFF0369A1)
-                )
+                shape = RoundedCornerShape(20.dp)
             ) {
                 if (loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = Color(0xFF0369A1),
+                        color = MaterialTheme.colorScheme.onPrimary,
                         strokeWidth = 2.dp
                     )
                     Spacer(Modifier.width(8.dp))
@@ -137,6 +147,37 @@ fun AlertasScreen(
                     Spacer(Modifier.width(6.dp))
                 }
                 Text(if (loading) "Cargando…" else "Actualizar", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+
+        if (alertas.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf(null to "Todas", "Mayor" to "Mayor", "Moderada" to "Mod.", "Menor" to "Menor").forEach { (value, label) ->
+                    FilterChip(
+                        selected = filterSeverity == value,
+                        onClick = { filterSeverity = value },
+                        label = { Text(label) }
+                    )
+                }
+            }
+            lastUpdate?.let { ts ->
+                val sec = (System.currentTimeMillis() - ts) / 1000
+                val text = when {
+                    sec < 60 -> "Actualizado hace un momento"
+                    sec < 3600 -> "Actualizado hace ${sec / 60} min"
+                    else -> "Actualizado hace ${sec / 3600} h"
+                }
+                Text(
+                    text,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             }
         }
 
@@ -161,7 +202,7 @@ fun AlertasScreen(
                 Text(
                     "Sin alertas. Pulsa Actualizar.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF94A3B8)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
@@ -172,17 +213,28 @@ fun AlertasScreen(
             ) {
                 item {
                     Text(
-                        "${alertas.size} alerta(s)",
+                        "${filteredAlertas.size} alerta(s)",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                items(alertas) { a ->
-                    AlertaCard(
-                        a,
-                        context = context,
-                        onClick = { selectedAlerta = a }
-                    )
+                if (filteredAlertas.isEmpty()) {
+                    item {
+                        Text(
+                            if (filterSeverity != null) "Ninguna alerta con ese filtro" else "Sin alertas",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                } else {
+                    items(filteredAlertas) { a ->
+                        AlertaCard(
+                            a,
+                            context = context,
+                            onClick = { selectedAlerta = a }
+                        )
+                    }
                 }
             }
         }
@@ -197,14 +249,14 @@ private fun AlertaCard(a: AlertaSasmex, context: Context, onClick: () -> Unit = 
         else -> Color(0xFFEA580C) to "Moderada"
     }
     val fechaStr = SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(a.fechaHora)
-    val shareText = "${a.evento}\n${a.severidad}\n$fechaStr\n— CIRES / rss.sasmex.net"
+    val shareText = "⚠️ #Sismo detectado. #AlertaSísmica #Sasmex\n${a.evento}\n${a.severidad}\n$fechaStr\n— CIRES / rss.sasmex.net"
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -229,7 +281,7 @@ private fun AlertaCard(a: AlertaSasmex, context: Context, onClick: () -> Unit = 
                         a.evento,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF0F172A),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -237,7 +289,7 @@ private fun AlertaCard(a: AlertaSasmex, context: Context, onClick: () -> Unit = 
                     Text(
                         fechaStr,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(10.dp))
                     Text(
@@ -250,7 +302,7 @@ private fun AlertaCard(a: AlertaSasmex, context: Context, onClick: () -> Unit = 
                     Text(
                         "Toca para ver mapa y detalles",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF0EA5E9)
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
                 Row {
@@ -261,7 +313,7 @@ private fun AlertaCard(a: AlertaSasmex, context: Context, onClick: () -> Unit = 
                             Toast.makeText(context, "Copiado", Toast.LENGTH_SHORT).show()
                         }
                     ) {
-                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = Color(0xFF64748B), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.ContentCopy, contentDescription = "Copiar", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
                     }
                     IconButton(
                         onClick = {
@@ -276,7 +328,7 @@ private fun AlertaCard(a: AlertaSasmex, context: Context, onClick: () -> Unit = 
                             )
                         }
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Compartir", tint = Color(0xFF0EA5E9), modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Share, contentDescription = "Compartir", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                     }
                 }
             }
