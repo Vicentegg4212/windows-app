@@ -1,0 +1,67 @@
+═══════════════════════════════════════════════════════════════
+  INSTRUCCIONES PARA CREAR EL INSTALADOR EN WINDOWS
+═══════════════════════════════════════════════════════════════
+
+OPCIÓN 1: USAR EL EJECUTABLE DIRECTAMENTE (MÁS SIMPLE)
+──────────────────────────────────────────────────────
+Solo necesitas el archivo DetectorSismos.exe que está en:
+  bin\Release\net8.0-windows\win-x64\publish\DetectorSismos.exe
+
+Haz doble clic y la aplicación se ejecutará inmediatamente.
+No necesita instalación ni .NET Framework.
+
+
+OPCIÓN 2: CREAR UN INSTALADOR PROFESIONAL (OPCIONAL)
+─────────────────────────────────────────────────────
+Si quieres crear un instalador profesional con asistente gráfico:
+
+1. Descarga e instala Inno Setup:
+   https://jrsoftware.org/isdl.php
+
+2. Haz doble clic en: CREAR_INSTALADOR.bat
+
+3. Se generará: DetectorSismos_Setup.exe
+   
+Este instalador incluye:
+   ✓ Asistente de instalación paso a paso
+   ✓ Creación de accesos directos
+   ✓ Opción de ejecutar al finalizar
+   ✓ Desinstalador automático
+   ✓ Instalación en Archivos de Programa
+
+
+OPCIÓN 3: CREAR INSTALADOR MANUALMENTE
+───────────────────────────────────────
+1. Instala Inno Setup
+2. Abre: instalador.iss con Inno Setup
+3. Presiona F9 o selecciona "Build" > "Compile"
+4. El instalador se generará automáticamente
+
+
+═══════════════════════════════════════════════════════════════
+  REQUISITOS DEL SISTEMA
+═══════════════════════════════════════════════════════════════
+• Windows 10 o superior (64-bit)
+• Conexión a Internet para obtener datos de sismos
+• Aproximadamente 200 MB de espacio en disco
+
+
+═══════════════════════════════════════════════════════════════
+  ARCHIVOS INCLUIDOS
+═══════════════════════════════════════════════════════════════
+DetectorSismos.exe          - Aplicación principal
+README.md                   - Documentación completa
+instalador.iss              - Script de Inno Setup
+CREAR_INSTALADOR.bat        - Script para crear instalador
+INSTRUCCIONES_INSTALADOR.txt - Este archivo
+
+
+═══════════════════════════════════════════════════════════════
+  ¿NECESITAS AYUDA?
+═══════════════════════════════════════════════════════════════
+Lee el archivo README.md para más información sobre:
+  • Características de la aplicación
+  • Cómo usar el detector de sismos
+  • Sistema de notificaciones
+  • Fuente de datos (USGS API)
+

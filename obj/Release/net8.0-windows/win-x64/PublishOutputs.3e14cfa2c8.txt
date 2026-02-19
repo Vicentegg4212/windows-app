@@ -1,0 +1,2 @@
+/Users/chente/Desktop/proyecto21/bin/Release/net8.0-windows/win-x64/publish/DetectorSismos.pdb
+/Users/chente/Desktop/proyecto21/bin/Release/net8.0-windows/win-x64/publish/DetectorSismos.exe
