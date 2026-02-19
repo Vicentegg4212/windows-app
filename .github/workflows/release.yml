@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publicar (un solo .exe, sin instalar nada)
+        run: |
+          dotnet publish DetectorSismos.csproj -c Release -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o publish/win-x64
+
+      - name: Subir DetectorSismos.exe al Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: publish/win-x64/DetectorSismos.exe
+          generate_release_notes: true
+          draft: false
+          body: |
+            **SASMEX — Centro de Alertas Sísmicas** (Windows x64)
+
+            **Solo descargue el .exe y ejecútelo.** No necesita instalar .NET ni ningún otro programa.
+
+            - Descargue **DetectorSismos.exe**
+            - Doble clic para abrir
+            - Windows 10/11 (64 bits), conexión a Internet
+            - Fuente: [rss.sasmex.net](https://rss.sasmex.net) (SASMEX/CIRES)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
