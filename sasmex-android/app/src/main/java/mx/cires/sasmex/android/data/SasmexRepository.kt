@@ -235,13 +235,13 @@ class SasmexRepository {
         for (p in patterns) {
             p.find(content)?.let { return it.value.trim().take(100) }
         }
-        content.split("\n", ":", ";")
+        return content.split("\n", ":", ";")
             .map { it.trim() }
             .firstOrNull { line ->
                 line.length in 10..90 &&
                         (line.contains("Sismo", true) || line.contains("Alerta", true)) &&
                         !looksLikeRawData(line)
-            } ?: return "Alerta Sísmica SASMEX"
+            } ?: "Alerta Sísmica SASMEX"
     }
 
     private fun cleanDescription(rawContent: String): String {
