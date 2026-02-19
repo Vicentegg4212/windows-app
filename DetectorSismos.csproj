@@ -5,11 +5,26 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="SasmexCore\SasmexCore.csproj" />
+  </ItemGroup>
+
+  <!-- Excluir proyectos/carpetas que no son parte de la app WPF -->
+  <ItemGroup>
+    <Compile Remove="Sasmex.Android/**" />
+    <Compile Remove="SasmexCore/**" />
+    <Compile Remove="**/obj/**" />
+    <Page Remove="Sasmex.Android/**" />
+    <None Remove="Sasmex.Android/**" />
+    <None Remove="SasmexCore/**" />
   </ItemGroup>
 
 </Project>
