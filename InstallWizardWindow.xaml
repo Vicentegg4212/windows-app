@@ -1,0 +1,97 @@
+<Window x:Class="DetectorSismos.InstallWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Configuración inicial — SASMEX" Height="580" Width="660"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        Background="{StaticResource BgAppBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Encabezado -->
+        <Border Grid.Row="0" Background="{StaticResource PrimaryDarkBrush}" Padding="28,22">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="44" Height="44" CornerRadius="6" Background="#33FFFFFF" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <TextBlock Text="Configuración inicial" 
+                               FontFamily="{StaticResource AppFont}" FontSize="20" FontWeight="SemiBold" Foreground="White"/>
+                    <TextBlock Text="SASMEX · Centro de Alertas Sísmicas" 
+                               FontFamily="{StaticResource AppFont}" FontSize="12" Foreground="#B0BEC5" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Indicador de pasos -->
+        <Border Grid.Row="1" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" 
+                BorderThickness="0,1,0,1" Padding="24,14">
+            <UniformGrid x:Name="stepIndicator" Rows="1" Columns="4" HorizontalAlignment="Center">
+                <StackPanel Margin="6" HorizontalAlignment="Center">
+                    <Ellipse x:Name="step1Circle" Width="28" Height="28" Fill="{StaticResource SuccessBrush}"/>
+                    <TextBlock Text="Bienvenida" FontFamily="{StaticResource AppFont}" FontSize="11" 
+                               HorizontalAlignment="Center" Margin="0,6,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+                <StackPanel Margin="6" HorizontalAlignment="Center">
+                    <Ellipse x:Name="step2Circle" Width="28" Height="28" Fill="#FFCBD5E1"/>
+                    <TextBlock Text="Requisitos" FontFamily="{StaticResource AppFont}" FontSize="11" 
+                               HorizontalAlignment="Center" Margin="0,6,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+                <StackPanel Margin="6" HorizontalAlignment="Center">
+                    <Ellipse x:Name="step3Circle" Width="28" Height="28" Fill="#FFCBD5E1"/>
+                    <TextBlock Text="Configuración" FontFamily="{StaticResource AppFont}" FontSize="11" 
+                               HorizontalAlignment="Center" Margin="0,6,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+                <StackPanel Margin="6" HorizontalAlignment="Center">
+                    <Ellipse x:Name="step4Circle" Width="28" Height="28" Fill="#FFCBD5E1"/>
+                    <TextBlock Text="Finalizar" FontFamily="{StaticResource AppFont}" FontSize="11" 
+                               HorizontalAlignment="Center" Margin="0,6,0,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                </StackPanel>
+            </UniformGrid>
+        </Border>
+
+        <!-- Contenido -->
+        <Border Grid.Row="2" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" 
+                BorderThickness="1" CornerRadius="8" Margin="24,20,24,16">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.05" Color="Black"/>
+            </Border.Effect>
+            <ScrollViewer x:Name="contentScroll" VerticalScrollBarVisibility="Auto" Padding="28,24">
+                <StackPanel x:Name="panelContent"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Botones -->
+        <Border Grid.Row="3" Background="{StaticResource BgCardBrush}" BorderBrush="{StaticResource BorderSubtleBrush}" 
+                BorderThickness="0,1,0,0" Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="btnCancelar" Grid.Column="0" Content="Cancelar" Width="96" Height="36" 
+                        HorizontalAlignment="Left" Style="{StaticResource ButtonSecondary}"
+                        Click="btnCancelar_Click"/>
+                <Button x:Name="btnAtras" Grid.Column="1" Content="Atrás" Width="96" Height="36" 
+                        Margin="0,0,10,0" Style="{StaticResource ButtonSecondary}"
+                        Click="btnAtras_Click"/>
+                <Button x:Name="btnSiguiente" Grid.Column="2" Content="Siguiente" Width="100" Height="36" 
+                        Margin="0,0,10,0" Style="{StaticResource ButtonPrimary}"
+                        Click="btnSiguiente_Click"/>
+                <Button x:Name="btnFinalizar" Grid.Column="3" Content="Finalizar" Width="100" Height="36" 
+                        Style="{StaticResource ButtonPrimary}" Background="{StaticResource SuccessBrush}"
+                        Click="btnFinalizar_Click" Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,23 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+*.dll
+*.pdb
+*.exe
+*.cache
+*.user
+*.suo
+.vs/
+*.rsuser
+
+# NuGet
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# User-specific
+*.userosscache
+*.sln.docstates
