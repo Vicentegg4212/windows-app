@@ -34,8 +34,7 @@
                        FontFamily="{StaticResource AppFont}" FontSize="13" 
                        Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,16"/>
             <ProgressBar Grid.Row="2" x:Name="progressBar" Height="22" 
-                         IsIndeterminate="True"
-                         Style="{StaticResource {x:Type ProgressBar}}"/>
+                         IsIndeterminate="True"/>
         </Grid>
     </Border>
 </Window>

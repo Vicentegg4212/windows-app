@@ -13,12 +13,12 @@ namespace DetectorSismos
 
             var loading = new LoadingWindow();
             loading.Show();
-            await Task.Delay(150);
+            await Task.Delay(200).ConfigureAwait(true);
 
             try
             {
                 loading.SetMensaje("Verificando carpetas del sistema...");
-                await Task.Delay(350);
+                await Task.Delay(350).ConfigureAwait(true);
 
                 string appDataPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -32,40 +32,55 @@ namespace DetectorSismos
                 }
 
                 loading.SetMensaje("Cargando configuración...");
-                await Task.Delay(300);
+                await Task.Delay(300).ConfigureAwait(true);
 
                 bool esPrimeraVez = !File.Exists(configFile);
 
                 loading.SetMensaje("Preparando interfaz...");
-                await Task.Delay(400);
+                await Task.Delay(400).ConfigureAwait(true);
                 loading.SetMensaje("Iniciando SASMEX...");
-                await Task.Delay(250);
+                await Task.Delay(300).ConfigureAwait(true);
 
                 loading.Close();
+                loading = null;
 
-                if (esPrimeraVez)
+                // Abrir la siguiente ventana en el hilo de la UI para evitar que se quede colgada
+                bool primeraVez = esPrimeraVez;
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    var installWizard = new InstallWizardWindow();
-                    bool? result = installWizard.ShowDialog();
-
-                    if (result == true)
+                    if (primeraVez)
                     {
-                        File.WriteAllText(configFile, DateTime.Now.ToString());
-                    }
-                    else
-                    {
-                        Shutdown();
-                        return;
-                    }
-                }
+                        var installWizard = new InstallWizardWindow();
+                        bool? result = installWizard.ShowDialog();
 
-                var mainWindow = new MainWindow();
-                mainWindow.Show();
+                        if (result == true)
+                        {
+                            try
+                            {
+                                File.WriteAllText(configFile, DateTime.Now.ToString());
+                            }
+                            catch { /* ya creada la carpeta */ }
+                        }
+                        else
+                        {
+                            Shutdown();
+                            return;
+                        }
+                    }
+
+                    var mainWindow = new MainWindow();
+                    mainWindow.Show();
+                });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                loading.Close();
-                throw;
+                try { loading?.Close(); } catch { }
+                MessageBox.Show(
+                    "No se pudo iniciar la aplicación.\n\nError: " + ex.Message,
+                    "DetectorSismos",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                Shutdown();
             }
         }
     }
