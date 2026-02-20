@@ -1,83 +1,71 @@
 using System;
 using System.IO;
-using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace DetectorSismos
 {
     public partial class App : Application
     {
-        protected override async void OnStartup(StartupEventArgs e)
+        protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
+            string appDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DetectorSismos"
+            );
+            string configFile = Path.Combine(appDataPath, "first_run.txt");
+            if (!Directory.Exists(appDataPath))
+                Directory.CreateDirectory(appDataPath);
+            bool esPrimeraVez = !File.Exists(configFile);
+
             var loading = new LoadingWindow();
             loading.Show();
-            await Task.Delay(200).ConfigureAwait(true);
 
-            try
+            // Ejecutar la apertura de la siguiente ventana en el siguiente ciclo del dispatcher
+            // (así la barra se pinta y no hay problemas de hilo)
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
-                loading.SetMensaje("Verificando carpetas del sistema...");
-                await Task.Delay(350).ConfigureAwait(true);
-
-                string appDataPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "DetectorSismos"
-                );
-                string configFile = Path.Combine(appDataPath, "first_run.txt");
-
-                if (!Directory.Exists(appDataPath))
+                try
                 {
-                    Directory.CreateDirectory(appDataPath);
-                }
+                    loading.Close();
+                    loading = null;
 
-                loading.SetMensaje("Cargando configuración...");
-                await Task.Delay(300).ConfigureAwait(true);
-
-                bool esPrimeraVez = !File.Exists(configFile);
-
-                loading.SetMensaje("Preparando interfaz...");
-                await Task.Delay(400).ConfigureAwait(true);
-                loading.SetMensaje("Iniciando SASMEX...");
-                await Task.Delay(300).ConfigureAwait(true);
-
-                loading.Close();
-                loading = null;
-
-                // Ya estamos en el hilo UI; abrir la siguiente ventana directamente (InvokeAsync causaba deadlock)
-                if (esPrimeraVez)
-                {
-                    var installWizard = new InstallWizardWindow();
-                    bool? result = installWizard.ShowDialog();
-
-                    if (result == true)
+                    if (esPrimeraVez)
                     {
                         try
                         {
-                            File.WriteAllText(configFile, DateTime.Now.ToString());
+                            var installWizard = new InstallWizardWindow();
+                            if (installWizard.ShowDialog() == true)
+                                try { File.WriteAllText(configFile, DateTime.Now.ToString()); } catch { }
+                            else
+                            {
+                                Shutdown();
+                                return;
+                            }
                         }
-                        catch { /* ya creada la carpeta */ }
+                        catch (Exception exWizard)
+                        {
+                            // Si el asistente falla (ej. recurso XAML), ir directo a principal
+                            MessageBox.Show("Configuración omitida: " + exWizard.Message, "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
                     }
-                    else
-                    {
-                        Shutdown();
-                        return;
-                    }
-                }
 
-                var mainWindow = new MainWindow();
-                mainWindow.Show();
-            }
-            catch (Exception ex)
-            {
-                try { loading?.Close(); } catch { }
-                MessageBox.Show(
-                    "No se pudo iniciar la aplicación.\n\nError: " + ex.Message,
-                    "DetectorSismos",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-                Shutdown();
-            }
+                    var mainWindow = new MainWindow();
+                    mainWindow.Show();
+                }
+                catch (Exception ex)
+                {
+                    try { loading?.Close(); } catch { }
+                    MessageBox.Show(
+                        "No se pudo iniciar la aplicación.\n\nError: " + ex.Message + "\n\n" + ex.StackTrace,
+                        "DetectorSismos",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    Shutdown();
+                }
+            }));
         }
     }
 }
