@@ -44,33 +44,29 @@ namespace DetectorSismos
                 loading.Close();
                 loading = null;
 
-                // Abrir la siguiente ventana en el hilo de la UI para evitar que se quede colgada
-                bool primeraVez = esPrimeraVez;
-                await Application.Current.Dispatcher.InvokeAsync(() =>
+                // Ya estamos en el hilo UI; abrir la siguiente ventana directamente (InvokeAsync causaba deadlock)
+                if (esPrimeraVez)
                 {
-                    if (primeraVez)
+                    var installWizard = new InstallWizardWindow();
+                    bool? result = installWizard.ShowDialog();
+
+                    if (result == true)
                     {
-                        var installWizard = new InstallWizardWindow();
-                        bool? result = installWizard.ShowDialog();
-
-                        if (result == true)
+                        try
                         {
-                            try
-                            {
-                                File.WriteAllText(configFile, DateTime.Now.ToString());
-                            }
-                            catch { /* ya creada la carpeta */ }
+                            File.WriteAllText(configFile, DateTime.Now.ToString());
                         }
-                        else
-                        {
-                            Shutdown();
-                            return;
-                        }
+                        catch { /* ya creada la carpeta */ }
                     }
+                    else
+                    {
+                        Shutdown();
+                        return;
+                    }
+                }
 
-                    var mainWindow = new MainWindow();
-                    mainWindow.Show();
-                });
+                var mainWindow = new MainWindow();
+                mainWindow.Show();
             }
             catch (Exception ex)
             {
